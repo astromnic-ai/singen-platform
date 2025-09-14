@@ -6,9 +6,10 @@ import { Search, Package, Wrench, Calculator } from "lucide-react"
 interface AgentSidebarProps {
   selectedAgent: string
   onAgentSelect: (agent: string) => void
+  conversationHistory?: Record<string, any[]>
 }
 
-export function AgentSidebar({ selectedAgent, onAgentSelect }: AgentSidebarProps) {
+export function AgentSidebar({ selectedAgent, onAgentSelect, conversationHistory = {} }: AgentSidebarProps) {
   const agents = [
     {
       id: "process-analysis",

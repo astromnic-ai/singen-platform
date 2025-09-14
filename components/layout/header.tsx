@@ -30,10 +30,7 @@ export function Header() {
         </Button>
 
         <Avatar className="w-8 h-8">
-          <AvatarImage src="/placeholder.svg?height=32&width=32" />
-          <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
-            <User className="w-4 h-4" />
-          </AvatarFallback>
+          <AvatarFallback>S</AvatarFallback>
         </Avatar>
       </div>
     </header>
