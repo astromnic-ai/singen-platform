@@ -2,12 +2,177 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+// 扩展消息模型以支持完整内容
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  // 助手消息的额外信息
+  sourcesCount?: number;
+  sources?: Array<{
+    id: string;
+    title: string;
+    content: string;
+    fileType: string;
+    url?: string;
+    preview?: string;
+    metadata?: any;
+  }>;
+  attachments?: Array<{
+    id: string;
+    title: string;
+    filename: string;
+    content?: string;
+  }>;
+  cot?: {
+    steps: Array<{
+      label: string;
+      status: 'complete' | 'active' | 'pending';
+    }>;
+  };
+}
+
+// 模拟数据库存储 - 在实际项目中应该使用真实的数据库
+let chatHistory: Record<string, Array<{
+  id: string;
+  title: string;
+  messages: Array<ChatMessage>;
+  createdAt: string;
+  updatedAt: string;
+}>> = {
+  'process-analysis': [
+    {
+      id: 'conv_demo_1',
+      title: 'XXX工艺需求分析分析',
+      messages: [
+        { 
+          id: 'msg_1', 
+          role: 'user', 
+          content: '请帮我分析这个工艺需求', 
+          timestamp: new Date(Date.now() - 3600000).toISOString() 
+        },
+        { 
+          id: 'msg_2', 
+          role: 'assistant', 
+          content: '您好，我是工艺需求分析智能体。我已收到您的消息："请帮我分析这个工艺需求"。\n\n基于您的需求，我将为您提供以下分析：\n\n1. 工艺流程分析和优化建议\n2. 技术规范和质量标准制定\n3. 关键控制点识别和监控方案\n\n我已经为您完成了《工艺需求分析文档》以及《待确认问题清单》的编写。请查阅附件', 
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+          sourcesCount: 3,
+          sources: [
+            {
+              id: "doc-1",
+              title: "工艺流程设计规范 GB/T 19001-2016",
+              content: "本标准规定了工艺流程设计的基本要求、设计原则和技术规范...",
+              fileType: "pdf",
+              url: "https://example.com/docs/gb19001-2016.pdf",
+              preview: "本标准规定了工艺流程设计的基本要求、设计原则和技术规范。适用于各类制造业的工艺流程设计工作，包括但不限于机械加工、化工生产、食品加工等行业。"
+            }
+          ],
+          attachments: [
+            {
+              id: "attachment-1",
+              title: "工艺需求分析报告",
+              filename: "process_analysis_report.md",
+              content: `# 工艺需求分析报告\n\n## 项目概述\n本报告基于您提供的需求，对工艺流程进行了详细分析。\n\n## 关键技术要求\n1. **温度控制**：±2°C精度\n2. **压力范围**：0.1-1.0 MPa\n3. **流量控制**：精度±1%`
+            }
+          ],
+          cot: {
+            steps: [
+              { label: "正在分析上传的工艺文档，提取关键技术要求和规范标准...", status: "complete" },
+              { label: "识别工艺流程中的关键控制点和质量要求...", status: "complete" },
+              { label: "生成标准化的工艺需求分析文档和问题清单...", status: "complete" }
+            ]
+          }
+        }
+      ],
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      updatedAt: new Date(Date.now() - 3500000).toISOString()
+    },
+    {
+      id: 'conv_demo_2', 
+      title: 'XXX工艺需求分析分析',
+      messages: [
+        { id: 'msg_3', role: 'user', content: '这个生产线的关键控制点在哪里？', timestamp: new Date(Date.now() - 7200000).toISOString() },
+        { id: 'msg_4', role: 'assistant', content: '根据您的工艺流程，关键控制点主要包括...', timestamp: new Date(Date.now() - 7100000).toISOString() }
+      ],
+      createdAt: new Date(Date.now() - 7200000).toISOString(),
+      updatedAt: new Date(Date.now() - 7100000).toISOString()
+    }
+  ],
+  'component-selection': [
+    {
+      id: 'conv_demo_3',
+      title: 'XXX工艺需求分析分析',
+      messages: [
+        { id: 'msg_5', role: 'user', content: '推荐一些适合的PLC控制器', timestamp: new Date(Date.now() - 1800000).toISOString() },
+        { id: 'msg_6', role: 'assistant', content: '基于您的需求，我推荐以下PLC控制器...', timestamp: new Date(Date.now() - 1700000).toISOString() }
+      ],
+      createdAt: new Date(Date.now() - 1800000).toISOString(),
+      updatedAt: new Date(Date.now() - 1700000).toISOString()
+    }
+  ],
+  'cost-calculation': [
+    {
+      id: 'conv_demo_4',
+      title: 'XXX工艺需求分析分析',
+      messages: [
+        { id: 'msg_7', role: 'user', content: '计算整套设备的成本', timestamp: new Date(Date.now() - 5400000).toISOString() },
+        { id: 'msg_8', role: 'assistant', content: '根据您提供的设备清单，总成本约为...', timestamp: new Date(Date.now() - 5300000).toISOString() }
+      ],
+      createdAt: new Date(Date.now() - 5400000).toISOString(),
+      updatedAt: new Date(Date.now() - 5300000).toISOString()
+    }
+  ]
+};
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const agent = searchParams.get('agent');
+  
+  if (!agent) {
+    return Response.json({ error: 'Agent parameter is required' }, { status: 400 });
+  }
+  
+  const history = chatHistory[agent] || [];
+  return Response.json({ history });
+}
+
 export async function POST(req: NextRequest) {
-  const { message, selectedAgent } = await req.json().catch(() => ({ message: "", selectedAgent: "" }));
+  const { message, selectedAgent, conversationId } = await req.json().catch(() => ({ message: "", selectedAgent: "", conversationId: null }));
+  
+  // 生成对话标题（取用户消息的前20个字符）
+  const conversationTitle = message ? message.substring(0, 20) + (message.length > 20 ? '...' : '') : '新对话';
+  
+  // 如果没有提供conversationId，创建新对话
+  let currentConversationId = conversationId;
+  if (!currentConversationId) {
+    currentConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // 创建新的对话记录
+    if (!chatHistory[selectedAgent]) {
+      chatHistory[selectedAgent] = [];
+    }
+    
+    chatHistory[selectedAgent].push({
+      id: currentConversationId,
+      title: conversationTitle,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
+      
+      // 收集完整的消息信息用于保存
+      let assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_assistant`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString()
+      };
 
       // Helper to send SSE data chunks
       const send = async (data: unknown) => {
@@ -76,14 +241,19 @@ export async function POST(req: NextRequest) {
         ],
       });
 
+      const finalCoTSteps = [
+        { label: steps[0], status: "complete" as const },
+        { label: steps[1], status: "complete" as const },
+        { label: steps[2], status: "complete" as const },
+      ];
+      
       await send({
         type: "cot",
-        steps: [
-          { label: steps[0], status: "complete" },
-          { label: steps[1], status: "complete" },
-          { label: steps[2], status: "complete" },
-        ],
+        steps: finalCoTSteps,
       });
+      
+      // 保存CoT到assistantMessage
+      assistantMessage.cot = { steps: finalCoTSteps };
 
       // 根据智能体定制回复内容
       const agentResponses = {
@@ -122,6 +292,8 @@ export async function POST(req: NextRequest) {
 
       for (const part of chunks) {
         await send({ type: "text", content: part });
+        // 累积内容到assistantMessage
+        assistantMessage.content += part;
       }
 
       // 根据不同智能体提供相关的文档引用
@@ -268,12 +440,14 @@ export async function POST(req: NextRequest) {
 
       const sources = agentSources[selectedAgent as keyof typeof agentSources] || agentSources["process-analysis"];
       
-      // 发送文档引用信息
+      // 发送文档引用信息并保存到assistantMessage
       await send({ 
         type: "sources", 
         count: sources.length,
         sources: sources
       });
+      assistantMessage.sourcesCount = sources.length;
+      assistantMessage.sources = sources;
 
       // 发送markdown附件
       const attachments = [
@@ -330,9 +504,29 @@ export async function POST(req: NextRequest) {
           filename: att.filename
         }))
       });
+      // 保存完整的attachments到assistantMessage
+      assistantMessage.attachments = attachments;
 
-      // End of stream
-      await send({ type: "done", attachments });
+      // 保存消息到历史记录
+      const conversation = chatHistory[selectedAgent]?.find(conv => conv.id === currentConversationId);
+      if (conversation) {
+        // 添加用户消息
+        const userMessage: ChatMessage = {
+          id: `msg_${Date.now()}_user`,
+          role: 'user',
+          content: message,
+          timestamp: new Date().toISOString()
+        };
+        conversation.messages.push(userMessage);
+        
+        // 添加完整的助手消息
+        conversation.messages.push(assistantMessage);
+        
+        conversation.updatedAt = new Date().toISOString();
+      }
+
+      // End of stream - 包含conversationId
+      await send({ type: "done", attachments, conversationId: currentConversationId });
       controller.close();
     },
   });

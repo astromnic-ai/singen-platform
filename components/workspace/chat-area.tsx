@@ -57,6 +57,8 @@ interface ChatAreaProps {
   onRunClick: () => void;
   showProcessSidebar: boolean;
   onConversationHistoryChange?: (history: Record<string, UIMessageItem[]>) => void;
+  selectedConversation?: string;
+  onConversationChange?: (conversationId: string) => void;
 }
 
 type Role = "user" | "assistant";
@@ -102,9 +104,19 @@ interface UIMessageItem {
   };
 }
 
-export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChange }: ChatAreaProps) {
+export function ChatArea({ 
+  selectedAgent, 
+  onRunClick, 
+  onConversationHistoryChange,
+  selectedConversation,
+  onConversationChange
+}: ChatAreaProps) {
   // 为每个智能体维护独立的对话历史
   const [conversationHistory, setConversationHistory] = useState<Record<string, UIMessageItem[]>>({});
+  // 当前对话ID状态
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  // 历史对话消息（从服务器加载的）
+  const [historicalMessages, setHistoricalMessages] = useState<UIMessageItem[]>([]);
   const [status, setStatus] = useState<
     "idle" | "submitted" | "streaming" | "error"
   >("idle");
@@ -125,8 +137,56 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, UploadedDocument[]>>({});
   const isRunning = status === "submitted" || status === "streaming";
 
-  // 获取当前智能体的消息
-  const messages = conversationHistory[selectedAgent] || [];
+  // 加载历史对话
+  useEffect(() => {
+    const loadHistoricalConversation = async (conversationId: string) => {
+      try {
+        const response = await fetch(`/api/chat?agent=${selectedAgent}`)
+        if (response.ok) {
+          const data = await response.json()
+          const conversation = data.history.find((conv: any) => conv.id === conversationId)
+          if (conversation) {
+            // 将历史消息转换为UIMessageItem格式，包含完整信息
+            const historicalMessages: UIMessageItem[] = conversation.messages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              // 保留助手消息的完整信息
+              ...(msg.role === 'assistant' && {
+                sourcesCount: msg.sourcesCount,
+                sources: msg.sources,
+                attachments: msg.attachments,
+                cot: msg.cot
+              })
+            }))
+            setHistoricalMessages(historicalMessages)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load historical conversation:', error)
+      }
+    }
+
+    if (selectedConversation) {
+      setCurrentConversationId(selectedConversation)
+      loadHistoricalConversation(selectedConversation)
+    } else {
+      setCurrentConversationId(null)
+      setHistoricalMessages([])
+    }
+  }, [selectedConversation, selectedAgent])
+
+  // 获取当前显示的消息
+  const messages = useMemo(() => {
+    if (selectedConversation) {
+      // 如果选中了历史对话，合并历史消息和当前对话的新消息
+      const currentMessages = conversationHistory[`${selectedAgent}_${selectedConversation}`] || [];
+      return [...historicalMessages, ...currentMessages];
+    } else {
+      // 新对话或未选中历史对话
+      return conversationHistory[selectedAgent] || [];
+    }
+  }, [selectedConversation, historicalMessages, conversationHistory, selectedAgent]);
   
   // 将UIMessageItem转换为ThreeDDesignArea期望的ChatMessage格式
   const convertToChatMessages = (uiMessages: UIMessageItem[]) => {
@@ -179,10 +239,14 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
       role: "assistant",
       content: "",
     };
-    // 更新当前智能体的对话历史
+    // 更新对话历史 - 如果是历史对话则使用特殊的key
+    const conversationKey = selectedConversation 
+      ? `${selectedAgent}_${selectedConversation}` 
+      : selectedAgent;
+    
     setConversationHistory((prev) => ({
       ...prev,
-      [selectedAgent]: [...(prev[selectedAgent] || []), userMessage, assistantMessage]
+      [conversationKey]: [...(prev[conversationKey] || []), userMessage, assistantMessage]
     }));
     setStatus("submitted");
 
@@ -190,7 +254,12 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: prompt, files, selectedAgent }),
+        body: JSON.stringify({ 
+          message: prompt, 
+          files, 
+          selectedAgent,
+          conversationId: selectedConversation || currentConversationId 
+        }),
         signal: abortRef.current.signal,
       });
 
@@ -204,7 +273,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
       const commit = (update: Partial<UIMessageItem>) => {
         setConversationHistory((prev) => ({
           ...prev,
-          [selectedAgent]: (prev[selectedAgent] || []).map((m) =>
+          [conversationKey]: (prev[conversationKey] || []).map((m) =>
             m.id === assistantId ? { ...m, ...update } : m
           )
         }));
@@ -225,7 +294,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
               if (evt.type === "text") {
                 setConversationHistory((prev) => ({
                   ...prev,
-                  [selectedAgent]: (prev[selectedAgent] || []).map((m) =>
+                  [conversationKey]: (prev[conversationKey] || []).map((m) =>
                     m.id === assistantId
                       ? {
                         ...m,
@@ -250,6 +319,11 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
                 // 处理完整的附件内容
                 if (evt.attachments && Array.isArray(evt.attachments)) {
                   commit({ attachments: evt.attachments });
+                }
+                // 处理新的conversationId
+                if (evt.conversationId && !currentConversationId && !selectedConversation) {
+                  setCurrentConversationId(evt.conversationId);
+                  onConversationChange?.(evt.conversationId);
                 }
               }
             } catch {
@@ -468,7 +542,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
                   {(file) => <PromptInputAttachment data={file} />}
                 </PromptInputAttachments>
                 <PromptInputTextarea
-                  placeholder="请输入您的设计需求或问题..."
+                  placeholder={selectedConversation ? "继续这个对话..." : "请输入您的设计需求或问题..."}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <div className="flex items-center justify-between p-1">
