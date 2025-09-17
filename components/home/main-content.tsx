@@ -59,7 +59,7 @@ export function MainContent() {
         </div>
 
         {/* 对话框区域 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-10">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-10 w-[2/3]">
           <div className="p-8">
             <div className="relative mb-6">
               <Textarea

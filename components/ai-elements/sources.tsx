@@ -31,7 +31,7 @@ export const SourcesTrigger = ({
   ...props
 }: SourcesTriggerProps) => (
   <CollapsibleTrigger
-    className={cn("flex items-center gap-2 hover:bg-blue-50 px-2 py-1 rounded cursor-pointer transition-colors", className)}
+    className={cn("flex items-center gap-2 hover:bg-blue-50 py-1 rounded cursor-pointer transition-colors", className)}
     onClick={(e) => {
       e.preventDefault();
       onSourcesClick?.();

@@ -100,12 +100,12 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
     "idle" | "submitted" | "streaming" | "error"
   >("idle");
   const abortRef = useRef<AbortController | null>(null);
-  
+
   // 侧栏预览状态
   const [showPreviewSidebar, setShowPreviewSidebar] = useState(false);
   const [previewAttachments, setPreviewAttachments] = useState<MarkdownAttachment[]>([]);
   const [currentAttachmentId, setCurrentAttachmentId] = useState<string>();
-  
+
   // 来源文档侧栏状态
   const [showSourcesSidebar, setShowSourcesSidebar] = useState(false);
   const [currentSources, setCurrentSources] = useState<SourceDocument[]>([]);
@@ -208,7 +208,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
                 evt.type === "sources" &&
                 typeof evt.count === "number"
               ) {
-                commit({ 
+                commit({
                   sourcesCount: evt.count,
                   sources: evt.sources || []
                 });
@@ -322,8 +322,8 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
                       <div className="space-y-2">
                         {typeof m.sourcesCount === "number" && (
                           <Sources>
-                            <SourcesTrigger 
-                              count={m.sourcesCount} 
+                            <SourcesTrigger
+                              count={m.sourcesCount}
                               onSourcesClick={() => handleSourcesClick(m.sources || [])}
                             />
                             {/* <SourcesContent>
@@ -385,7 +385,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="p-4">
+        <div className="w-2/3 mx-auto">
           <PromptInput className="divide-y-0 border-none shadow-none"
             onSubmit={({ text, files }) => handleSubmit({ text, files })}
           >
@@ -416,7 +416,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
                           ? "error"
                           : undefined
                   }
-                  style={{ width: "90px" }}
+                  style={{ width: "90px" , margin: "6px" }}
                 >
                   {<SendIcon className="size-4" />}
                   运行
@@ -426,7 +426,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
           </PromptInput>
         </div>
       </div>
-      
+
       {/* Markdown预览侧栏 */}
       <MarkdownPreviewSidebar
         isOpen={showPreviewSidebar}
@@ -435,7 +435,7 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
         currentAttachmentId={currentAttachmentId}
         onAttachmentChange={setCurrentAttachmentId}
       />
-      
+
       {/* 来源文档侧栏 */}
       <SourcesSidebar
         isOpen={showSourcesSidebar}
