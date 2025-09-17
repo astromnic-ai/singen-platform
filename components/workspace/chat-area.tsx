@@ -49,6 +49,7 @@ import { Calculator, Database, SendIcon, FileText, EyeIcon } from "lucide-react"
 import { Button } from "../ui/button";
 import { MarkdownPreviewSidebar } from "./markdown-preview-sidebar";
 import { SourcesSidebar } from "./sources-sidebar";
+import { ThreeDDesignArea } from "./three-d-design-area";
 
 // Keep props compatible
 interface ChatAreaProps {
@@ -81,6 +82,13 @@ interface SourceDocument {
   };
 }
 
+interface UploadedDocument {
+  id: string;
+  name: string;
+  format: string;
+  size: string;
+}
+
 interface UIMessageItem {
   id: string;
   role: Role;
@@ -88,6 +96,7 @@ interface UIMessageItem {
   sourcesCount?: number;
   sources?: SourceDocument[];
   attachments?: MarkdownAttachment[];
+  uploadedDocuments?: UploadedDocument[];
   cot?: {
     steps: { label: string; status: "complete" | "active" | "pending" }[];
   };
@@ -110,13 +119,34 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
   const [showSourcesSidebar, setShowSourcesSidebar] = useState(false);
   const [currentSources, setCurrentSources] = useState<SourceDocument[]>([]);
 
+  // 3D设计区域所需的状态
+  const [message, setMessage] = useState("");
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, UploadedDocument[]>>({});
+  const isRunning = status === "submitted" || status === "streaming";
+
   // 获取当前智能体的消息
   const messages = conversationHistory[selectedAgent] || [];
+  
+  // 将UIMessageItem转换为ThreeDDesignArea期望的ChatMessage格式
+  const convertToChatMessages = (uiMessages: UIMessageItem[]) => {
+    return uiMessages.map(msg => ({
+      type: msg.role === "assistant" ? "agent" as const : "user" as const,
+      content: msg.content
+    }));
+  };
+
+  // 创建当前聊天状态对象，用于3D设计区域
+  const currentChatState = {
+    messages: convertToChatMessages(messages),
+    uploadedDocuments: uploadedDocuments[selectedAgent] || []
+  };
 
   // 当智能体切换时，重置状态
   useEffect(() => {
     setStatus("idle");
     abortRef.current?.abort();
+    setMessage(""); // 清空消息输入
   }, [selectedAgent]);
 
   // 当对话历史更新时，通知父组件
@@ -235,6 +265,36 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
     }
   }
 
+  // 处理3D设计区域的运行按钮点击
+  const handleRun = () => {
+    if (!message.trim()) return;
+    handleSubmit({ text: message });
+    setMessage("");
+  };
+
+  // 处理文档上传
+  const handleDocumentUpload = (files: File[]) => {
+    const newDocs = files.map((file) => ({
+      id: Math.random().toString(36).substr(2, 9),
+      name: file.name,
+      format: file.name.split(".").pop()?.toUpperCase() || "FILE",
+      size: (file.size / (1024 * 1024)).toFixed(1) + "MB",
+    }));
+    
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [selectedAgent]: [...(prev[selectedAgent] || []), ...newDocs]
+    }));
+  };
+
+  // 移除上传的文档
+  const removeUploadedDocument = (id: string) => {
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [selectedAgent]: (prev[selectedAgent] || []).filter(doc => doc.id !== id)
+    }));
+  };
+
   const agentInfo = {
     "process-analysis": {
       name: "工艺需求分析",
@@ -301,131 +361,146 @@ export function ChatArea({ selectedAgent, onRunClick, onConversationHistoryChang
 
   return (
     <div className="flex-1 flex">
-      <div className="flex-1 flex flex-col">
-        {/* 智能体简介固定显示区域 */}
-        <div className="w-full border-b border-gray-100 backdrop-blur-sm sticky top-0 z-10">
-          <div className="p-4 h-16 flex items-center bg-[#eff6ff] justify-between">
-            <p className="text-[#1e40af]">{currentAgent.description}</p>
-            {getAgentButton()}
+      {selectedAgent === "3d-design" ? (
+        <ThreeDDesignArea
+          messages={currentChatState.messages}
+          onSendMessage={handleRun}
+          message={message}
+          setMessage={setMessage}
+          isRunning={isRunning}
+          uploadedDocuments={currentChatState.uploadedDocuments}
+          onUploadDocuments={handleDocumentUpload}
+          onRemoveDocument={removeUploadedDocument}
+          showUploadDialog={showUploadDialog}
+          setShowUploadDialog={setShowUploadDialog}
+        />
+      ) : (
+        <div className="flex-1 flex flex-col">
+          {/* 智能体简介固定显示区域 */}
+          <div className="w-full border-b border-gray-100 backdrop-blur-sm sticky top-0 z-10">
+            <div className="p-4 h-16 flex items-center bg-[#eff6ff] justify-between">
+              <p className="text-[#1e40af]">{currentAgent.description}</p>
+              {getAgentButton()}
+            </div>
           </div>
-        </div>
 
-        <Conversation className="w-2/3 mx-auto">
-          {messages.length === 0 ? (
-            Empty
-          ) : (
-            <ConversationContent>
-              {messages.map((m) => (
-                <AIMessage key={m.id} from={m.role}>
-                  <MessageContent>
-                    {m.role === "assistant" ? (
-                      <div className="space-y-2">
-                        {typeof m.sourcesCount === "number" && (
-                          <Sources>
-                            <SourcesTrigger
-                              count={m.sourcesCount}
-                              onSourcesClick={() => handleSourcesClick(m.sources || [])}
-                            />
-                            {/* <SourcesContent>
+          <Conversation className="w-2/3 mx-auto">
+            {messages.length === 0 ? (
+              Empty
+            ) : (
+              <ConversationContent>
+                {messages.map((m) => (
+                  <AIMessage key={m.id} from={m.role}>
+                    <MessageContent>
+                      {m.role === "assistant" ? (
+                        <div className="space-y-2">
+                          {typeof m.sourcesCount === "number" && (
+                            <Sources>
+                              <SourcesTrigger
+                                count={m.sourcesCount}
+                                onSourcesClick={() => handleSourcesClick(m.sources || [])}
+                              />
+                              {/* <SourcesContent>
                               <Source href="#" title="相关文档示例" />
                             </SourcesContent> */}
-                          </Sources>
-                        )}
-                        {m.cot && (
-                          <ChainOfThought defaultOpen={true}>
-                            <ChainOfThoughtHeader>
-                              深度思考
-                            </ChainOfThoughtHeader>
-                            <ChainOfThoughtContent>
-                              {m.cot.steps.map((s, i) => (
-                                <ChainOfThoughtStep
-                                  key={i}
-                                  label={s.label}
-                                  status={s.status}
-                                />
-                              ))}
-                            </ChainOfThoughtContent>
-                          </ChainOfThought>
-                        )}
-                        <Response>{m.content}</Response>
-                        {m.attachments && m.attachments.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <h4 className="text-sm font-medium text-gray-700">附件 ({m.attachments.length})</h4>
-                            <div className="grid gap-2">
-                              {m.attachments.map((attachment) => (
-                                <button
-                                  key={attachment.id}
-                                  onClick={() => handleAttachmentPreview(m.attachments!, attachment.id)}
-                                  className="flex items-center space-x-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors text-left"
-                                >
-                                  <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                      {attachment.title}
-                                    </p>
-                                    <p className="text-xs text-gray-500 truncate">
-                                      {attachment.filename}
-                                    </p>
-                                  </div>
-                                  <EyeIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                                </button>
-                              ))}
+                            </Sources>
+                          )}
+                          {m.cot && (
+                            <ChainOfThought defaultOpen={true}>
+                              <ChainOfThoughtHeader>
+                                深度思考
+                              </ChainOfThoughtHeader>
+                              <ChainOfThoughtContent>
+                                {m.cot.steps.map((s, i) => (
+                                  <ChainOfThoughtStep
+                                    key={i}
+                                    label={s.label}
+                                    status={s.status}
+                                  />
+                                ))}
+                              </ChainOfThoughtContent>
+                            </ChainOfThought>
+                          )}
+                          <Response>{m.content}</Response>
+                          {m.attachments && m.attachments.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                              <h4 className="text-sm font-medium text-gray-700">附件 ({m.attachments.length})</h4>
+                              <div className="grid gap-2">
+                                {m.attachments.map((attachment) => (
+                                  <button
+                                    key={attachment.id}
+                                    onClick={() => handleAttachmentPreview(m.attachments!, attachment.id)}
+                                    className="flex items-center space-x-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors text-left"
+                                  >
+                                    <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {attachment.title}
+                                      </p>
+                                      <p className="text-xs text-gray-500 truncate">
+                                        {attachment.filename}
+                                      </p>
+                                    </div>
+                                    <EyeIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Response>{m.content}</Response>
-                    )}
-                  </MessageContent>
-                </AIMessage>
-              ))}
-            </ConversationContent>
-          )}
-          <ConversationScrollButton />
-        </Conversation>
+                          )}
+                        </div>
+                      ) : (
+                        <Response>{m.content}</Response>
+                      )}
+                    </MessageContent>
+                  </AIMessage>
+                ))}
+              </ConversationContent>
+            )}
+            <ConversationScrollButton />
+          </Conversation>
 
-        <div className="w-2/3 mx-auto">
-          <PromptInput className="divide-y-0 border-none shadow-none"
-            onSubmit={({ text, files }) => handleSubmit({ text, files })}
-          >
-            <PromptInputBody>
-              <PromptInputAttachments>
-                {(file) => <PromptInputAttachment data={file} />}
-              </PromptInputAttachments>
-              <PromptInputTextarea
-                placeholder="请输入您的设计需求或问题..."
-                className="border-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-              <div className="flex items-center justify-between p-1">
-                <div className="flex items-center gap-1">
-                  <PromptInputActionMenu>
-                    <PromptInputActionMenuTrigger aria-label="更多操作" />
-                    <PromptInputActionMenuContent>
-                      <PromptInputActionAddAttachments />
-                    </PromptInputActionMenuContent>
-                  </PromptInputActionMenu>
+          <div className="w-2/3 mx-auto">
+            <PromptInput className="divide-y-0 border-none shadow-none"
+              onSubmit={({ text, files }) => handleSubmit({ text, files })}
+            >
+              <PromptInputBody>
+                <PromptInputAttachments>
+                  {(file) => <PromptInputAttachment data={file} />}
+                </PromptInputAttachments>
+                <PromptInputTextarea
+                  placeholder="请输入您的设计需求或问题..."
+                  className="border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <div className="flex items-center justify-between p-1">
+                  <div className="flex items-center gap-1">
+                    <PromptInputActionMenu>
+                      <PromptInputActionMenuTrigger aria-label="更多操作" />
+                      <PromptInputActionMenuContent>
+                        <PromptInputActionAddAttachments />
+                      </PromptInputActionMenuContent>
+                    </PromptInputActionMenu>
+                  </div>
+                  <PromptInputSubmit
+                    status={
+                      status === "submitted"
+                        ? "submitted"
+                        : status === "streaming"
+                          ? "streaming"
+                          : status === "error"
+                            ? "error"
+                            : undefined
+                    }
+                    style={{ width: "90px", margin: "6px" }}
+                  >
+                    {<SendIcon className="size-4" />}
+                    运行
+                  </PromptInputSubmit>
                 </div>
-                <PromptInputSubmit
-                  status={
-                    status === "submitted"
-                      ? "submitted"
-                      : status === "streaming"
-                        ? "streaming"
-                        : status === "error"
-                          ? "error"
-                          : undefined
-                  }
-                  style={{ width: "90px" , margin: "6px" }}
-                >
-                  {<SendIcon className="size-4" />}
-                  运行
-                </PromptInputSubmit>
-              </div>
-            </PromptInputBody>
-          </PromptInput>
+              </PromptInputBody>
+            </PromptInput>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Markdown预览侧栏 */}
       <MarkdownPreviewSidebar
