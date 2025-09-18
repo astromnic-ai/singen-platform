@@ -176,6 +176,16 @@ export function ChatArea({
     }
   }, [selectedConversation, selectedAgent])
 
+  // 切换聊天时自动关闭所有侧边栏并清理状态
+  useEffect(() => {
+    setShowPreviewSidebar(false);
+    setShowSourcesSidebar(false);
+    // 清理相关状态
+    setPreviewAttachments([]);
+    setCurrentAttachmentId(undefined);
+    setCurrentSources([]);
+  }, [selectedAgent, selectedConversation])
+
   // 获取当前显示的消息
   const messages = useMemo(() => {
     if (selectedConversation) {
@@ -419,13 +429,58 @@ export function ChatArea({
   const handleAttachmentPreview = (attachments: MarkdownAttachment[], attachmentId?: string) => {
     setPreviewAttachments(attachments);
     setCurrentAttachmentId(attachmentId || attachments[0]?.id);
+    // 关闭来源文档侧边栏，显示附件预览侧边栏
+    setShowSourcesSidebar(false);
     setShowPreviewSidebar(true);
   };
 
   // 处理来源文档点击
   const handleSourcesClick = (sources: SourceDocument[]) => {
     setCurrentSources(sources);
+    // 关闭附件预览侧边栏，显示来源文档侧边栏
+    setShowPreviewSidebar(false);
     setShowSourcesSidebar(true);
+  };
+
+  // 处理markdown内容保存
+  const handleContentSave = (attachmentId: string, newContent: string) => {
+    // 更新预览附件的内容
+    setPreviewAttachments(prev => 
+      prev.map(att => 
+        att.id === attachmentId 
+          ? { ...att, content: newContent }
+          : att
+      )
+    );
+
+    // 更新对话历史中对应消息的附件内容
+    setConversationHistory(prev => {
+      const newHistory = { ...prev };
+      const currentKey = selectedConversation 
+        ? `${selectedAgent}_${selectedConversation}` 
+        : selectedAgent;
+      
+      if (newHistory[currentKey]) {
+        newHistory[currentKey] = newHistory[currentKey].map(msg => {
+          if (msg.attachments) {
+            return {
+              ...msg,
+              attachments: msg.attachments.map(att => 
+                att.id === attachmentId 
+                  ? { ...att, content: newContent }
+                  : att
+              )
+            };
+          }
+          return msg;
+        });
+      }
+      
+      return newHistory;
+    });
+
+    // 通知父组件对话历史已更新
+    onConversationHistoryChange?.(conversationHistory);
   };
 
   const Empty = useMemo(
@@ -579,16 +634,26 @@ export function ChatArea({
       {/* Markdown预览侧栏 */}
       <MarkdownPreviewSidebar
         isOpen={showPreviewSidebar}
-        onClose={() => setShowPreviewSidebar(false)}
+        onClose={() => {
+          setShowPreviewSidebar(false);
+          // 清理预览状态
+          setPreviewAttachments([]);
+          setCurrentAttachmentId(undefined);
+        }}
         attachments={previewAttachments}
         currentAttachmentId={currentAttachmentId}
         onAttachmentChange={setCurrentAttachmentId}
+        onContentSave={handleContentSave}
       />
 
       {/* 来源文档侧栏 */}
       <SourcesSidebar
         isOpen={showSourcesSidebar}
-        onClose={() => setShowSourcesSidebar(false)}
+        onClose={() => {
+          setShowSourcesSidebar(false);
+          // 清理来源文档状态
+          setCurrentSources([]);
+        }}
         sources={currentSources}
       />
     </div>
