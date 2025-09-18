@@ -3,13 +3,28 @@
 import { WorkspaceHeader } from "@/components/workspace/workspace-header"
 import { AgentSidebar } from "@/components/workspace/agent-sidebar"
 import { ChatArea } from "@/components/workspace/chat-area"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function WorkspacePage() {
+  const searchParams = useSearchParams()
+  const agentParam = searchParams.get('agent')
+  
   const [selectedAgent, setSelectedAgent] = useState("process-analysis")
   const [projectName, setProjectName] = useState("未命名文件")
   const [conversationHistory, setConversationHistory] = useState<Record<string, any[]>>({})
   const [selectedConversation, setSelectedConversation] = useState<string>()
+
+  // 根据URL参数自动选择智能体
+  useEffect(() => {
+    if (agentParam) {
+      // 验证智能体ID是否有效
+      const validAgents = ['process-analysis', 'component-selection', '3d-design', 'cost-calculation']
+      if (validAgents.includes(agentParam)) {
+        setSelectedAgent(agentParam)
+      }
+    }
+  }, [agentParam])
 
   const handleAgentSelect = (agent: string) => {
     setSelectedAgent(agent)
