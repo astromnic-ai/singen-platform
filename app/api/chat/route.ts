@@ -31,6 +31,17 @@ interface ChatMessage {
       status: 'complete' | 'active' | 'pending';
     }>;
   };
+  // 组件智能选型的可交互选项
+  componentOptions?: {
+    message?: string; // 提示文本
+    options?: Array<{
+      id: string;
+      label: string;
+      icon: string;
+      type: 'url' | 'markdown';
+      content: string; // URL或markdown内容
+    }>;
+  };
 }
 
 // 模拟数据库存储 - 在实际项目中应该使用真实的数据库
@@ -102,10 +113,149 @@ let chatHistory: Record<string, Array<{
   'component-selection': [
     {
       id: 'conv_demo_3',
-      title: 'XXX工艺需求分析分析',
+      title: '行星轮移动分料工位选型',
       messages: [
-        { id: 'msg_5', role: 'user', content: '推荐一些适合的PLC控制器', timestamp: new Date(Date.now() - 1800000).toISOString() },
-        { id: 'msg_6', role: 'assistant', content: '基于您的需求，我推荐以下PLC控制器...', timestamp: new Date(Date.now() - 1700000).toISOString() }
+        { id: 'msg_5', role: 'user', content: '我需要一个行星轮移动分料工位，处理能力要求800件/小时，定位精度±0.1mm', timestamp: new Date(Date.now() - 1800000).toISOString() },
+        { 
+          id: 'msg_6', 
+          role: 'assistant', 
+          content: '您好，我是组件智能选型助手。我已收到您的消息："我需要一个行星轮移动分料工位，处理能力要求800件/小时，定位精度±0.1mm"。\n\n我将为您提供专业的组件选型服务：\n\n1. 智能匹配最适合的组件型号\n2. 供应商对比和价格分析\n3. 技术参数验证和兼容性检查\n', 
+          timestamp: new Date(Date.now() - 1700000).toISOString(),
+          sourcesCount: 2,
+          sources: [
+            {
+              id: "comp-1",
+              title: "工业自动化组件选型指南",
+              content: "组件选型应考虑技术参数、环境条件、成本效益等因素...",
+              fileType: "md",
+              url: "https://example.com/docs/component-guide.md",
+              preview: "组件选型应考虑技术参数、环境条件、成本效益等因素。首先需要明确应用场景和技术要求，然后对比不同供应商的产品规格...",
+              metadata: {
+                size: "856 KB",
+                lastModified: "2024-03-05",
+                author: "自动化工程师协会"
+              }
+            },
+            {
+              id: "comp-2",
+              title: "PLC产品技术规格书",
+              content: "可编程逻辑控制器技术参数和应用说明...",
+              fileType: "pdf",
+              url: "https://example.com/docs/plc-specs.pdf",
+              preview: "可编程逻辑控制器技术参数和应用说明。包括CPU性能、I/O配置、通信接口、编程环境等详细技术指标...",
+              metadata: {
+                size: "4.2 MB", 
+                lastModified: "2024-01-28",
+                author: "西门子自动化"
+              }
+            }
+          ],
+          componentOptions: {
+            message: "已为您找到匹配的方案。推荐行星轮移动分料工位带求。需要为您展示详情吗？",
+            options: [
+              {
+                id: "3d-model",
+                label: "查看3D模型",
+                icon: "Box",
+                type: "url",
+                content: "https://models.example.com/planetary-gear-system"
+              },
+              {
+                id: "parameters",
+                label: "查看相关参数",
+                icon: "Settings",
+                type: "markdown",
+                content: `# 行星轮移动分料工位技术参数
+
+## 基本参数
+- **型号**: PGS-2000
+- **功率**: 5.5kW
+- **转速**: 0-60 rpm (可调)
+- **扭矩**: 1500 N·m
+- **减速比**: 1:50
+
+## 技术规格
+### 机械参数
+- 承载能力: 2000kg
+- 定位精度: ±0.1mm
+- 重复定位精度: ±0.05mm
+- 工作温度: -10°C ~ +60°C
+- 防护等级: IP65
+
+### 电气参数
+- 供电电压: AC 380V ±10%
+- 控制电压: DC 24V
+- 功率消耗: 6.5kW (最大)
+- 通信接口: Profinet, Ethernet/IP
+
+## 工艺能力
+- 分料精度: ±2%
+- 处理能力: 500-1200件/小时
+- 适用物料: 直径10-80mm圆形零件
+- 物料重量: 单件≤5kg
+
+## 安全特性
+- 急停按钮: 符合ISO 13850标准
+- 安全光栅: 4级安全等级
+- 故障诊断: 自动检测与报警
+- 维护提醒: 智能预测性维护`
+              },
+              {
+                id: "design",
+                label: "查看设计方案",
+                icon: "FileCheck",
+                type: "markdown",
+                content: `# 行星轮移动分料工位设计方案
+
+## 设计概述
+本方案采用行星轮传动系统，实现高精度、高效率的物料分料作业。系统集成了先进的伺服控制技术和智能传感器，确保稳定可靠的工作性能。
+
+## 系统架构
+### 机械结构
+1. **行星轮减速器**
+   - 采用三级行星轮结构
+   - 输出扭矩大，运行平稳
+   - 噪音低于70dB
+
+2. **移动平台**
+   - 直线导轨系统
+   - 伺服电机驱动
+   - 行程可达2000mm
+
+3. **分料机构**
+   - 气动夹具设计
+   - 快速响应时间<0.2s
+   - 夹持力可调范围50-200N
+
+### 控制系统
+1. **主控制器**: 西门子S7-1500 PLC
+2. **人机界面**: 10寸彩色触摸屏
+3. **安全系统**: 符合CE安全标准
+4. **通信网络**: 工业以太网架构
+
+## 工艺流程
+1. 物料输送至待分料位置
+2. 传感器检测物料规格
+3. 系统自动选择分料策略
+4. 执行分料动作
+5. 质量检测与反馈
+6. 完成品输出
+
+## 技术优势
+- **高精度**: 定位精度达±0.1mm
+- **高效率**: 处理能力提升30%
+- **智能化**: 自适应控制算法
+- **易维护**: 模块化设计，便于维修
+
+## 投资回报
+- 设备投资: 约85万元
+- 年节省人工: 2-3人
+- 投资回收期: 18-24个月
+- 预期使用寿命: 10年以上`
+              }
+            ]
+          }
+        }
       ],
       createdAt: new Date(Date.now() - 1800000).toISOString(),
       updatedAt: new Date(Date.now() - 1700000).toISOString()
@@ -507,6 +657,121 @@ export async function POST(req: NextRequest) {
       // 保存完整的attachments到assistantMessage
       assistantMessage.attachments = attachments;
 
+      // 为组件智能选型智能体添加可交互选项
+      if (selectedAgent === "component-selection") {
+        const componentOptions = {
+          message: "已为您找到匹配的方案。推荐行星轮移动分料工位带求。需要为您展示详情吗？",
+          options: [
+            {
+              id: "3d-model",
+              label: "查看3D模型",
+              icon: "Box",
+              type: "url" as const,
+              content: "https://models.example.com/planetary-gear-system"
+            },
+            {
+              id: "parameters",
+              label: "查看相关参数",
+              icon: "Settings",
+              type: "markdown" as const,
+              content: `# 行星轮移动分料工位技术参数
+
+## 基本参数
+- **型号**: PGS-2000
+- **功率**: 5.5kW
+- **转速**: 0-60 rpm (可调)
+- **扭矩**: 1500 N·m
+- **减速比**: 1:50
+
+## 技术规格
+### 机械参数
+- 承载能力: 2000kg
+- 定位精度: ±0.1mm
+- 重复定位精度: ±0.05mm
+- 工作温度: -10°C ~ +60°C
+- 防护等级: IP65
+
+### 电气参数
+- 供电电压: AC 380V ±10%
+- 控制电压: DC 24V
+- 功率消耗: 6.5kW (最大)
+- 通信接口: Profinet, Ethernet/IP
+
+## 工艺能力
+- 分料精度: ±2%
+- 处理能力: 500-1200件/小时
+- 适用物料: 直径10-80mm圆形零件
+- 物料重量: 单件≤5kg
+
+## 安全特性
+- 急停按钮: 符合ISO 13850标准
+- 安全光栅: 4级安全等级
+- 故障诊断: 自动检测与报警
+- 维护提醒: 智能预测性维护`
+            },
+            {
+              id: "design",
+              label: "查看设计方案",
+              icon: "FileCheck",
+              type: "markdown" as const,
+              content: `# 行星轮移动分料工位设计方案
+
+## 设计概述
+本方案采用行星轮传动系统，实现高精度、高效率的物料分料作业。系统集成了先进的伺服控制技术和智能传感器，确保稳定可靠的工作性能。
+
+## 系统架构
+### 机械结构
+1. **行星轮减速器**
+   - 采用三级行星轮结构
+   - 输出扭矩大，运行平稳
+   - 噪音低于70dB
+
+2. **移动平台**
+   - 直线导轨系统
+   - 伺服电机驱动
+   - 行程可达2000mm
+
+3. **分料机构**
+   - 气动夹具设计
+   - 快速响应时间<0.2s
+   - 夹持力可调范围50-200N
+
+### 控制系统
+1. **主控制器**: 西门子S7-1500 PLC
+2. **人机界面**: 10寸彩色触摸屏
+3. **安全系统**: 符合CE安全标准
+4. **通信网络**: 工业以太网架构
+
+## 工艺流程
+1. 物料输送至待分料位置
+2. 传感器检测物料规格
+3. 系统自动选择分料策略
+4. 执行分料动作
+5. 质量检测与反馈
+6. 完成品输出
+
+## 技术优势
+- **高精度**: 定位精度达±0.1mm
+- **高效率**: 处理能力提升30%
+- **智能化**: 自适应控制算法
+- **易维护**: 模块化设计，便于维修
+
+## 投资回报
+- 设备投资: 约85万元
+- 年节省人工: 2-3人
+- 投资回收期: 18-24个月
+- 预期使用寿命: 10年以上`
+            }
+          ]
+        };
+
+        await send({ 
+          type: "componentOptions", 
+          options: componentOptions
+        });
+        assistantMessage.componentOptions = componentOptions;
+      }
+
       // 保存消息到历史记录
       const conversation = chatHistory[selectedAgent]?.find(conv => conv.id === currentConversationId);
       if (conversation) {
@@ -525,8 +790,13 @@ export async function POST(req: NextRequest) {
         conversation.updatedAt = new Date().toISOString();
       }
 
-      // End of stream - 包含conversationId
-      await send({ type: "done", attachments, conversationId: currentConversationId });
+      // End of stream - 包含conversationId和组件选项
+      await send({ 
+        type: "done", 
+        attachments, 
+        conversationId: currentConversationId,
+        componentOptions: assistantMessage.componentOptions
+      });
       controller.close();
     },
   });

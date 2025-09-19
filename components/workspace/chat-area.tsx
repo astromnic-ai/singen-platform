@@ -45,7 +45,7 @@ import {
   ChainOfThoughtHeader,
   ChainOfThoughtStep,
 } from "@/components/ai-elements/chain-of-thought";
-import { Calculator, Database, SendIcon, FileText, EyeIcon } from "lucide-react";
+import { Calculator, Database, SendIcon, FileText, EyeIcon, Box, Settings, FileCheck } from "lucide-react";
 import { Button } from "../ui/button";
 import { MarkdownPreviewSidebar } from "./markdown-preview-sidebar";
 import { SourcesSidebar } from "./sources-sidebar";
@@ -102,6 +102,17 @@ interface UIMessageItem {
   cot?: {
     steps: { label: string; status: "complete" | "active" | "pending" }[];
   };
+  // 组件智能选型的可交互选项
+  componentOptions?: {
+    message?: string; // 提示文本
+    options?: Array<{
+      id: string;
+      label: string;
+      icon: string;
+      type: 'url' | 'markdown';
+      content: string; // URL或markdown内容
+    }>;
+  };
 }
 
 export function ChatArea({ 
@@ -156,7 +167,8 @@ export function ChatArea({
                 sourcesCount: msg.sourcesCount,
                 sources: msg.sources,
                 attachments: msg.attachments,
-                cot: msg.cot
+                cot: msg.cot,
+                componentOptions: msg.componentOptions
               })
             }))
             setHistoricalMessages(historicalMessages)
@@ -325,10 +337,16 @@ export function ChatArea({
                 commit({ cot: { steps: evt.steps } });
               } else if (evt.type === "attachments" && Array.isArray(evt.attachments)) {
                 commit({ attachments: evt.attachments });
+              } else if (evt.type === "componentOptions" && evt.options) {
+                commit({ componentOptions: evt.options });
               } else if (evt.type === "done") {
                 // 处理完整的附件内容
                 if (evt.attachments && Array.isArray(evt.attachments)) {
                   commit({ attachments: evt.attachments });
+                }
+                // 处理组件选项
+                if (evt.componentOptions) {
+                  commit({ componentOptions: evt.componentOptions });
                 }
                 // 处理新的conversationId
                 if (evt.conversationId && !currentConversationId && !selectedConversation) {
@@ -440,6 +458,23 @@ export function ChatArea({
     // 关闭附件预览侧边栏，显示来源文档侧边栏
     setShowPreviewSidebar(false);
     setShowSourcesSidebar(true);
+  };
+
+  // 处理组件选项点击
+  const handleComponentOptionClick = (option: { id: string; label: string; type: 'url' | 'markdown'; content: string }) => {
+    if (option.type === 'url') {
+      // 跳转到外部页面
+      window.open(option.content, '_blank');
+    } else if (option.type === 'markdown') {
+      // 创建临时附件来显示markdown内容
+      const attachment: MarkdownAttachment = {
+        id: `${option.id}_${Date.now()}`,
+        title: option.label,
+        filename: `${option.id}.md`,
+        content: option.content
+      };
+      handleAttachmentPreview([attachment]);
+    }
   };
 
   // 处理markdown内容保存
@@ -573,6 +608,48 @@ export function ChatArea({
                                     <EyeIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
                                   </button>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* 组件智能选型的可交互选项 */}
+                          {selectedAgent === "component-selection" && m.componentOptions && m.componentOptions.options && (
+                            <div className="mt-4 space-y-3">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <span className="text-sm">🤖</span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {m.componentOptions.message || "已为您找到匹配的方案。需要为您展示详情吗？"}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                {m.componentOptions.options.map((option) => {
+                                  // 动态获取图标组件
+                                  const getIconComponent = (iconName: string) => {
+                                    switch (iconName) {
+                                      case 'Box':
+                                        return <Box className="w-4 h-4" />;
+                                      case 'Settings':
+                                        return <Settings className="w-4 h-4" />;
+                                      case 'FileCheck':
+                                        return <FileCheck className="w-4 h-4" />;
+                                      default:
+                                        return <FileText className="w-4 h-4" />;
+                                    }
+                                  };
+
+                                  return (
+                                    <Button
+                                      key={option.id}
+                                      size="sm"
+                                      onClick={() => handleComponentOptionClick(option)}
+                                      className="flex items-center gap-2 justify-start h-10 bg-white hover:bg-blue-50 border-blue-200 text-blue-700 hover:text-blue-800"
+                                    >
+                                      {getIconComponent(option.icon)}
+                                      {option.label}
+                                    </Button>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
