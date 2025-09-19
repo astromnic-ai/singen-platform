@@ -30,7 +30,7 @@ export function ThreeDCanvas() {
         <Button
           variant={viewMode === "perspective" ? "default" : "outline"}
           size="sm"
-          className="bg-white/80 backdrop-blur-sm"
+          className={viewMode === "perspective" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
           onClick={() => setViewMode("perspective")}
         >
           透视图
@@ -38,7 +38,7 @@ export function ThreeDCanvas() {
         <Button
           variant={viewMode === "top" ? "default" : "outline"}
           size="sm"
-          className="bg-white/80 backdrop-blur-sm"
+          className={viewMode === "top" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
           onClick={() => setViewMode("top")}
         >
           俯视图
@@ -46,7 +46,7 @@ export function ThreeDCanvas() {
         <Button
           variant={viewMode === "side" ? "default" : "outline"}
           size="sm"
-          className="bg-white/80 backdrop-blur-sm"
+          className={viewMode === "side" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
           onClick={() => setViewMode("side")}
         >
           侧视图
