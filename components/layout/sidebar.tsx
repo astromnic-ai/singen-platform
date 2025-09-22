@@ -13,7 +13,7 @@ export function Sidebar() {
     { href: "/my-projects", icon: FolderOpen, label: "我的项目" },
     { href: "/solutions", icon: FileText, label: "方案库" },
     { href: "/models", icon: Package, label: "模型库" },
-    { href: "/knowledge", icon: BookOpen, label: "知识库" },
+    { href: "http://search.thupx.cn/manage/knowledge/docs", icon: BookOpen, label: "知识库" },
   ]
 
   return (
@@ -24,7 +24,7 @@ export function Sidebar() {
           const isActive = pathname === item.href
 
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} target={item.href.includes("http") ? "_blank" : "_self"}>
               <Button
                 variant="ghost"
                 className={`w-full justify-start h-10 px-3 font-normal text-sm rounded-lg transition-all ${
