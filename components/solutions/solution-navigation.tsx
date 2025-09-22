@@ -260,7 +260,7 @@ export function SolutionNavigation({
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div className={`text-sm font-medium cursor-pointer ${isSelected ? 'text-blue-900' : 'text-gray-900'} truncate`}>
-                                          {truncateFileName(document.name, 36)}
+                                          {document.name}
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
