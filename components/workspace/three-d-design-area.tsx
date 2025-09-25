@@ -50,7 +50,7 @@ export function ThreeDDesignArea({
       {/* 主要3D设计区域 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* 智能体介绍 */}
-        <div className="p-6 bg-purple-50 border-b">
+        <div className="p-5 bg-purple-50 border-b">
           <p className="text-purple-800">我是整线3D设计智能体，专注于整体生产线的3D建模和设计工作。</p>
         </div>
 
