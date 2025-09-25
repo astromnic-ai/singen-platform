@@ -126,9 +126,9 @@ export function AgentSidebar({
   }
 
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       {/* 顶部新建对话按钮 */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100">
         <Button 
           onClick={onNewConversation}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white"

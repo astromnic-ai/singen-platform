@@ -47,7 +47,7 @@ export function ThreeDChatSidebar({
   return (
     <aside className="w-80 min-w-72 max-w-96 bg-white border-l border-gray-200 flex flex-col">
       {/* 头部 */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="pl-4 py-2 border-b border-gray-100">
         <h3 className="font-medium text-gray-900">设计助手</h3>
         <p className="text-sm text-gray-500 mt-1">与AI对话，获取3D设计建议</p>
       </div>

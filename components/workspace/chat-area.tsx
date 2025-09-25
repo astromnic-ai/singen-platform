@@ -31,6 +31,7 @@ import {
   PromptInputAttachments,
   PromptInputAttachment,
   PromptInputActionAddAttachments,
+  usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
 import {
@@ -45,7 +46,7 @@ import {
   ChainOfThoughtHeader,
   ChainOfThoughtStep,
 } from "@/components/ai-elements/chain-of-thought";
-import { Calculator, Database, SendIcon, FileText, EyeIcon, Box, Settings, FileCheck } from "lucide-react";
+import { Calculator, Database, SendIcon, FileText, EyeIcon, Box, Settings, FileCheck, File, FileImage, FileVideo, FileAudio, Archive, Code, Sheet, Presentation, Paperclip, X as XIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { MarkdownPreviewSidebar } from "./markdown-preview-sidebar";
 import { SourcesSidebar } from "./sources-sidebar";
@@ -62,6 +63,102 @@ interface ChatAreaProps {
 }
 
 type Role = "user" | "assistant";
+
+// 文件名截断工具函数
+const getDisplayName = (name: string, maxLength: number = 20) => {
+  if (name.length <= maxLength) return name;
+  
+  // 分离文件名和扩展名
+  const lastDotIndex = name.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    // 没有扩展名，直接截断开头
+    return name.substring(0, maxLength - 3) + '...';
+  }
+  
+  const baseName = name.substring(0, lastDotIndex);
+  const extension = name.substring(lastDotIndex);
+  
+  // 如果扩展名太长，直接截断开头
+  if (extension.length >= maxLength - 3) {
+    return name.substring(0, maxLength - 3) + '...';
+  }
+  
+  // 计算可用于基础文件名的字符数
+  const availableLength = maxLength - extension.length - 3; // 3 是 '...' 的长度
+  
+  if (availableLength <= 0) {
+    return name.substring(0, maxLength - 3) + '...';
+  }
+  
+  return baseName.substring(0, availableLength) + '...' + extension;
+};
+
+// 文件类型图标映射
+const getFileIcon = (fileName: string | undefined | null) => {
+  if (!fileName || typeof fileName !== 'string') {
+    return File;
+  }
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  switch (extension) {
+    case 'pdf':
+      return FileText;
+    case 'doc':
+    case 'docx':
+      return FileText;
+    case 'xls':
+    case 'xlsx':
+      return Sheet;
+    case 'ppt':
+    case 'pptx':
+      return Presentation;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return FileImage;
+    case 'mp4':
+    case 'avi':
+    case 'mov':
+    case 'wmv':
+      return FileVideo;
+    case 'mp3':
+    case 'wav':
+    case 'aac':
+    case 'flac':
+      return FileAudio;
+    case 'zip':
+    case 'rar':
+    case '7z':
+    case 'tar':
+      return Archive;
+    case 'js':
+    case 'ts':
+    case 'tsx':
+    case 'jsx':
+    case 'html':
+    case 'css':
+    case 'py':
+    case 'java':
+    case 'cpp':
+    case 'c':
+      return Code;
+    case 'txt':
+    case 'md':
+      return FileText;
+    default:
+      return File;
+  }
+};
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+}
 
 interface MarkdownAttachment {
   id: string;
@@ -99,6 +196,7 @@ interface UIMessageItem {
   sources?: SourceDocument[];
   attachments?: MarkdownAttachment[];
   uploadedDocuments?: UploadedDocument[];
+  uploadedFiles?: UploadedFile[]; // 新增：用户上传的文件
   cot?: {
     steps: { label: string; status: "complete" | "active" | "pending" }[];
   };
@@ -113,6 +211,105 @@ interface UIMessageItem {
       content: string; // URL或markdown内容
     }>;
   };
+}
+
+// 直接上传按钮组件
+function DirectUploadButton() {
+  const attachments = usePromptInputAttachments();
+  
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => {
+        // 确保文件输入框处于干净状态
+        if (attachments.fileInputRef.current) {
+          attachments.fileInputRef.current.value = '';
+        }
+        attachments.openFileDialog();
+      }}
+      className="text-muted-foreground hover:text-foreground"
+    >
+      <Paperclip className="w-4 h-4" />
+    </Button>
+  );
+}
+
+// 自定义文件附件组件
+function CustomFileAttachment({ data }: { data: any }) {
+  const attachments = usePromptInputAttachments();
+  const FileIcon = getFileIcon(data.filename || data.name || '');
+  
+  // 截取文件名，保留开头和后缀，省略中间部分
+  const fileName = data.filename || data.name || '未知文件';
+  const displayName = getDisplayName(fileName);
+  
+  return (
+    <div className="group relative inline-flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-md border border-gray-200 transition-colors">
+      {/* 文件图标 */}
+      <div className="flex-shrink-0">
+        {data.mediaType?.startsWith("image/") && data.url ? (
+          <img
+            alt={data.filename || "attachment"}
+            className="w-4 h-4 rounded object-cover"
+            src={data.url}
+          />
+        ) : (
+          <FileIcon className="w-4 h-4 text-blue-600" />
+        )}
+      </div>
+      
+      {/* 文件信息 */}
+      <div className="text-xs">
+        <p className="font-medium text-gray-900 whitespace-nowrap">
+          {displayName}
+        </p>
+        {data.size && (
+          <p className="text-gray-500 whitespace-nowrap">
+            {data.size < 1024 * 1024 
+              ? `${(data.size / 1024).toFixed(1)} KB`
+              : `${(data.size / (1024 * 1024)).toFixed(1)} MB`
+            }
+          </p>
+        )}
+      </div>
+      
+      {/* 删除按钮 */}
+      <Button
+        aria-label="Remove attachment"
+        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-5 w-5 p-0"
+        onClick={() => {
+          attachments.remove(data.id);
+          // 重置文件输入框以允许重新选择相同文件
+          if (attachments.fileInputRef.current) {
+            attachments.fileInputRef.current.value = '';
+          }
+        }}
+        type="button"
+        variant="ghost"
+      >
+        <XIcon className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
+// 自定义文件附件容器组件
+function CustomFileAttachments({ children }: { children: (file: any) => React.ReactNode }) {
+  const attachments = usePromptInputAttachments();
+  
+  if (attachments.files.length === 0) return null;
+  
+  return (
+    <div className="p-2 pb-0">
+      <div className="flex flex-wrap gap-2">
+        {attachments.files.map((file) => (
+          <div key={file.id}>{children(file)}</div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function ChatArea({ 
@@ -244,16 +441,41 @@ export function ChatArea({
     files?: any[];
   }) {
     const prompt = (text || "").trim();
-    if (!prompt) return;
+    if (!prompt && (!files || files.length === 0)) return;
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
     onRunClick?.();
 
+    // 处理上传的文件 - files 是 FileUIPart[] 类型
+    const uploadedFiles: UploadedFile[] = files ? await Promise.all(
+      files.map(async (file: any) => {
+        // 尝试从 blob URL 获取文件大小
+        let fileSize = 0;
+        if (file.url) {
+          try {
+            const response = await fetch(file.url);
+            const blob = await response.blob();
+            fileSize = blob.size;
+          } catch (error) {
+            console.warn('无法获取文件大小:', error);
+          }
+        }
+        
+        return {
+          id: nanoid(),
+          name: file.filename || file.name || '未知文件',
+          size: fileSize,
+          type: file.mediaType || file.type || 'application/octet-stream',
+        };
+      })
+    ) : [];
+
     const userMessage: UIMessageItem = {
       id: nanoid(),
       role: "user",
-      content: prompt,
+      content: prompt || "上传了文件",
+      uploadedFiles: uploadedFiles.length > 0 ? uploadedFiles : undefined,
     };
     const assistantId = nanoid();
     const assistantMessage: UIMessageItem = {
@@ -655,7 +877,39 @@ export function ChatArea({
                           )}
                         </div>
                       ) : (
-                        <Response>{m.content}</Response>
+                        <div className="space-y-2">
+                          <Response>{m.content}</Response>
+                          {/* 显示用户上传的文件 */}
+                          {m.uploadedFiles && m.uploadedFiles.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <div className="grid gap-2">
+                                {m.uploadedFiles.map((file) => {
+                                  const FileIcon = getFileIcon(file.name || '');
+                                  const fileSizeText = file.size < 1024 * 1024 
+                                    ? `${(file.size / 1024).toFixed(1)} KB`
+                                    : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+                                  
+                                  return (
+                                    <div
+                                      key={file.id}
+                                      className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
+                                    >
+                                      <FileIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 truncate">
+                                          {getDisplayName(file.name || '未知文件')}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {fileSizeText}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </MessageContent>
                   </AIMessage>
@@ -670,19 +924,20 @@ export function ChatArea({
               onSubmit={({ text, files }) => handleSubmit({ text, files })}
             >
               <PromptInputBody>
-                <PromptInputAttachments>
-                  {(file) => <PromptInputAttachment data={file} />}
-                </PromptInputAttachments>
+                <CustomFileAttachments>
+                  {(file) => <CustomFileAttachment data={file} />}
+                </CustomFileAttachments>
                 <PromptInputTextarea
                   placeholder={selectedConversation ? "继续这个对话..." : "请输入您的设计需求或问题..."}
                   className="border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <div className="flex items-center justify-between p-1">
                   <div className="flex items-center gap-1">
+                    <DirectUploadButton />
                     <PromptInputActionMenu>
                       <PromptInputActionMenuTrigger aria-label="更多操作" />
                       <PromptInputActionMenuContent>
-                        <PromptInputActionAddAttachments />
+                        <PromptInputActionAddAttachments label="添加文件" />
                       </PromptInputActionMenuContent>
                     </PromptInputActionMenu>
                   </div>
