@@ -3,15 +3,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { HelpCircle, User, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import Image from "next/image"
 
 export function Header() {
   return (
     <header className="h-14 bg-white/80 backdrop-blur-sm border-b border-gray-100 px-8 flex items-center justify-between">
       <div className="flex items-center space-x-8">
-        <Link href="/" className="flex items-center space-x-3">
-          <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-semibold text-sm">S</span>
-          </div>
+        <Link href="/" className="flex items-center">
+            <Image src="/logo.svg" alt="SINGEN logo" width={40} height={40} />
           <span className="text-lg font-medium text-gray-900">SINGEN星匠</span>
         </Link>
       </div>
