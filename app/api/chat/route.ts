@@ -8,6 +8,13 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  // 用户消息的上传文件
+  uploadedFiles?: Array<{
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+  }>;
   // 助手消息的额外信息
   sourcesCount?: number;
   sources?: Array<{
@@ -69,6 +76,20 @@ let chatHistory: Record<
           content:
             "我需要一个行星轮移动分料工位，处理能力要求800件/小时，定位精度±0.1mm",
           timestamp: new Date(Date.now() - 1800000).toISOString(),
+          uploadedFiles: [
+            {
+              id: "file_demo_1",
+              name: "工艺需求规格书.pdf",
+              size: 2048576,
+              type: "application/pdf",
+            },
+            {
+              id: "file_demo_2", 
+              name: "现场图片.jpg",
+              size: 1024000,
+              type: "image/jpeg",
+            },
+          ],
         },
         {
           id: "msg_6",
@@ -220,7 +241,41 @@ let chatHistory: Record<
     },
   ],
   "cost-calculation": [
-    ],
+    {
+      id: "conv_demo_cost_1",
+      title: "生产线部件成本分析",
+      messages: [
+        {
+          id: "msg_cost_1",
+          role: "user",
+          content: "请帮我分析这条生产线的各个部件成本，我上传了BOM清单和供应商报价单",
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          uploadedFiles: [
+            {
+              id: "file_cost_1",
+              name: "BOM清单_V2.1.xlsx",
+              size: 512000,
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+            {
+              id: "file_cost_2",
+              name: "供应商报价单.pdf",
+              size: 1536000,
+              type: "application/pdf",
+            },
+          ],
+        },
+        {
+          id: "msg_cost_2",
+          role: "assistant",
+          content: "您好，我是部件成本核算助手。我已收到您上传的BOM清单和供应商报价单，正在为您分析生产线各部件的成本构成。\n\n基于您提供的文件，我将从以下几个维度进行成本分析：\n\n1. **直接材料成本**：根据BOM清单计算原材料成本\n2. **供应商对比**：分析不同供应商的报价差异\n3. **成本构成分析**：识别主要成本驱动因素\n4. **优化建议**：提供降本增效的具体方案\n\n正在处理您的文件数据...",
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+        },
+      ],
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      updatedAt: new Date(Date.now() - 3500000).toISOString(),
+    },
+  ],
   };
 
 export async function GET(req: NextRequest) {
@@ -239,9 +294,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { message, selectedAgent, conversationId } = await req
+  const { message, selectedAgent, conversationId, files } = await req
     .json()
-    .catch(() => ({ message: "", selectedAgent: "", conversationId: null }));
+    .catch(() => ({ message: "", selectedAgent: "", conversationId: null, files: [] }));
 
   // 生成对话标题（取用户消息的前20个字符）
   const conversationTitle = message
@@ -986,12 +1041,21 @@ J --> L["机械手抓取托盘码放至NG料车（托盘排废）"]
         (conv) => conv.id === currentConversationId
       );
       if (conversation) {
+        // 处理用户上传的文件信息
+        const uploadedFiles = files && files.length > 0 ? files.map((file: any) => ({
+          id: file.id || `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: file.filename || file.name || "未知文件",
+          size: file.size || 0,
+          type: file.mediaType || file.type || "application/octet-stream",
+        })) : undefined;
+
         // 添加用户消息
         const userMessage: ChatMessage = {
           id: `msg_${Date.now()}_user`,
           role: "user",
           content: message,
           timestamp: new Date().toISOString(),
+          uploadedFiles: uploadedFiles,
         };
         conversation.messages.push(userMessage);
 

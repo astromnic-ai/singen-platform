@@ -404,6 +404,10 @@ export function ChatArea({
                 id: msg.id,
                 role: msg.role,
                 content: msg.content,
+                // 保留用户消息的上传文件信息
+                ...(msg.role === "user" && {
+                  uploadedFiles: msg.uploadedFiles,
+                }),
                 // 保留助手消息的完整信息
                 ...(msg.role === "assistant" && {
                   sourcesCount: msg.sourcesCount,
@@ -968,10 +972,11 @@ export function ChatArea({
                                 <>
                                   {shouldShowModel && (
                                     <div className="mb-4 w-full overflow-hidden rounded-lg border bg-white">
-                                      <div style={{ height: 500 }}>
+                                      <div style={{ height: 300 }}>
                                         <GlbViewer
                                           glbUrl="https://singen-1330656709.cos.ap-beijing.myqcloud.com/G48-3B31C59-201-002.glb"
                                           title="零件3D模型"
+                                          hideControls={true}
                                         />
                                       </div>
                                     </div>

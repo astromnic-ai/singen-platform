@@ -9,6 +9,7 @@ interface GlbViewerProps {
   glbUrl: string
   title?: string
   height?: number | string
+  hideControls?: boolean
 }
 
 interface ProgressEvent {
@@ -16,7 +17,7 @@ interface ProgressEvent {
   total: number
 }
 
-const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) => {
+const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500, hideControls = false }) => {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState("perspective")
   const [showGrid, setShowGrid] = useState(false)
@@ -400,77 +401,85 @@ const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) =>
       )}
 
       {/* 3D视图控制器 */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
-        <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={resetView}>
-          <RotateCcw className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={zoomIn}>
-          <ZoomIn className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={zoomOut}>
-          <ZoomOut className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={toggleFullscreen}>
-          <Maximize className="w-4 h-4" />
-        </Button>
-      </div>
+      {!hideControls && (
+        <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+          <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={resetView}>
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={zoomIn}>
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={zoomOut}>
+            <ZoomOut className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="bg-white/80 backdrop-blur-sm" onClick={toggleFullscreen}>
+            <Maximize className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* 视图模式切换 */}
-      <div className="absolute top-4 left-4 z-10 flex space-x-2">
-        <Button
-          variant={viewMode === "perspective" ? "default" : "outline"}
-          size="sm"
-          className={viewMode === "perspective" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
-          onClick={() => changeViewMode("perspective")}
-        >
-          透视图
-        </Button>
-        <Button
-          variant={viewMode === "top" ? "default" : "outline"}
-          size="sm"
-          className={viewMode === "top" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
-          onClick={() => changeViewMode("top")}
-        >
-          俯视图
-        </Button>
-        <Button
-          variant={viewMode === "side" ? "default" : "outline"}
-          size="sm"
-          className={viewMode === "side" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
-          onClick={() => changeViewMode("side")}
-        >
-          侧视图
-        </Button>
-      </div>
+      {!hideControls && (
+        <div className="absolute top-4 left-4 z-10 flex space-x-2">
+          <Button
+            variant={viewMode === "perspective" ? "default" : "outline"}
+            size="sm"
+            className={viewMode === "perspective" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
+            onClick={() => changeViewMode("perspective")}
+          >
+            透视图
+          </Button>
+          <Button
+            variant={viewMode === "top" ? "default" : "outline"}
+            size="sm"
+            className={viewMode === "top" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
+            onClick={() => changeViewMode("top")}
+          >
+            俯视图
+          </Button>
+          <Button
+            variant={viewMode === "side" ? "default" : "outline"}
+            size="sm"
+            className={viewMode === "side" ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
+            onClick={() => changeViewMode("side")}
+          >
+            侧视图
+          </Button>
+        </div>
+      )}
 
       {/* 网格显示控制 */}
-      <div className="absolute bottom-4 left-4 z-10 flex space-x-2">
-        <Button 
-          variant={showGrid ? "default" : "outline"} 
-          size="sm" 
-          className={showGrid ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
-          onClick={() => setShowGrid(!showGrid)}
-        >
-          <Grid3X3 className="w-4 h-4 mr-2" />
-          显示网格
-        </Button>
-        <Button 
-          variant={showAxis ? "default" : "outline"} 
-          size="sm" 
-          className={showAxis ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
-          onClick={() => setShowAxis(!showAxis)}
-        >
-          <Eye className="w-4 h-4 mr-2" />
-          显示轴线
-        </Button>
-      </div>
+      {!hideControls && (
+        <div className="absolute bottom-4 left-4 z-10 flex space-x-2">
+          <Button 
+            variant={showGrid ? "default" : "outline"} 
+            size="sm" 
+            className={showGrid ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
+            onClick={() => setShowGrid(!showGrid)}
+          >
+            <Grid3X3 className="w-4 h-4 mr-2" />
+            显示网格
+          </Button>
+          <Button 
+            variant={showAxis ? "default" : "outline"} 
+            size="sm" 
+            className={showAxis ? "backdrop-blur-sm" : "bg-white/80 backdrop-blur-sm"}
+            onClick={() => setShowAxis(!showAxis)}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            显示轴线
+          </Button>
+        </div>
+      )}
 
       {/* 状态栏 */}
-      <div className="absolute bottom-4 right-4 z-10">
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600">
-          坐标: ({cameraPosition.x}, {cameraPosition.y}, {cameraPosition.z}) | 缩放: {zoom}% | 组件: {componentCount}
+      {!hideControls && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-gray-600">
+            坐标: ({cameraPosition.x}, {cameraPosition.y}, {cameraPosition.z}) | 缩放: {zoom}% | 组件: {componentCount}
+          </div>
         </div>
-      </div>
+      )}
 
       <div ref={containerRef} className="absolute inset-0 w-full h-full" />
     </div>
