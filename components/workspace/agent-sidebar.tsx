@@ -209,7 +209,7 @@ export function AgentSidebar({
                   
                   {/* 空状态提示 - 整线3D设计不显示 */}
                   {isExpanded && agentHistory.length === 0 && agent.id !== '3d-design' && (
-                    <div className="ml-6 px-2 py-3 text-xs text-gray-400 text-center border-l border-gray-100 pl-2">
+                    <div className="ml-2 px-2 py-3 text-xs text-gray-400 text-center border-l border-gray-100 pl-2">
                       暂无历史会话
                     </div>
                   )}

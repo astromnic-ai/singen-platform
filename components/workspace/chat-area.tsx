@@ -200,6 +200,8 @@ interface UIMessageItem {
   cot?: {
     steps: { label: string; status: "complete" | "active" | "pending" }[];
   };
+  // 新增：后端流式思考文本
+  cotText?: string;
   // 组件智能选型的可交互选项
   componentOptions?: {
     message?: string; // 提示文本
@@ -364,6 +366,7 @@ export function ChatArea({
                 sourcesCount: msg.sourcesCount,
                 sources: msg.sources,
                 attachments: msg.attachments,
+                cotText: msg.cotText,
                 cot: msg.cot,
                 componentOptions: msg.componentOptions
               })
@@ -557,6 +560,21 @@ export function ChatArea({
                 });
               } else if (evt.type === "cot" && Array.isArray(evt.steps)) {
                 commit({ cot: { steps: evt.steps } });
+              } else if (evt.type === "cot_text" && typeof evt.content === "string") {
+                // 流式拼接思考文本
+                setConversationHistory((prev) => ({
+                  ...prev,
+                  [conversationKey]: (prev[conversationKey] || []).map((m) =>
+                    m.id === assistantId
+                      ? {
+                        ...m,
+                        cotText: (m.cotText || "") + evt.content,
+                      }
+                      : m
+                  )
+                }));
+              } else if (evt.type === "cot_text_done") {
+                // 结束事件，无额外操作
               } else if (evt.type === "attachments" && Array.isArray(evt.attachments)) {
                 commit({ attachments: evt.attachments });
               } else if (evt.type === "componentOptions" && evt.options) {
@@ -569,6 +587,10 @@ export function ChatArea({
                 // 处理组件选项
                 if (evt.componentOptions) {
                   commit({ componentOptions: evt.componentOptions });
+                }
+                // 持久化最终思考文本（防止刷新后消失）
+                if (evt.cotText) {
+                  commit({ cotText: evt.cotText });
                 }
                 // 处理新的conversationId
                 if (evt.conversationId && !currentConversationId && !selectedConversation) {
@@ -761,14 +783,14 @@ export function ChatArea({
           setShowUploadDialog={setShowUploadDialog}
         />
       ) : (
-        <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col">
           {/* 智能体简介固定显示区域 */}
           <div className="w-full border-b border-gray-100 backdrop-blur-sm sticky top-0 z-10">
             <div className="p-4 h-16 flex items-center bg-[#eff6ff] justify-between">
               <p className="text-[#1e40af]">{currentAgent.description}</p>
-              {getAgentButton()}
-            </div>
-          </div>
+          {getAgentButton()}
+        </div>
+              </div>
 
           <Conversation className="w-2/3 mx-auto">
             {messages.length === 0 ? (
@@ -791,19 +813,25 @@ export function ChatArea({
                             </SourcesContent> */}
                             </Sources>
                           )}
-                          {m.cot && (
+                          {(m.cotText || m.cot) && (
                             <ChainOfThought defaultOpen={true}>
                               <ChainOfThoughtHeader>
                                 深度思考
                               </ChainOfThoughtHeader>
                               <ChainOfThoughtContent>
-                                {m.cot.steps.map((s, i) => (
-                                  <ChainOfThoughtStep
-                                    key={i}
-                                    label={s.label}
-                                    status={s.status}
-                                  />
-                                ))}
+                                {m.cotText ? (
+                                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                    {m.cotText}
+            </div>
+          ) : (
+                                  m.cot?.steps.map((s, i) => (
+                                    <ChainOfThoughtStep
+                                      key={i}
+                                      label={s.label}
+                                      status={s.status}
+                                    />
+                                  ))
+                                )}
                               </ChainOfThoughtContent>
                             </ChainOfThought>
                           )}
@@ -813,7 +841,7 @@ export function ChatArea({
                               <h4 className="text-sm font-medium text-gray-700">附件 ({m.attachments.length})</h4>
                               <div className="grid gap-2">
                                 {m.attachments.map((attachment) => (
-                                  <button
+                          <button
                                     key={attachment.id}
                                     onClick={() => handleAttachmentPreview(m.attachments!, attachment.id)}
                                     className="flex items-center space-x-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors text-left"
@@ -825,25 +853,25 @@ export function ChatArea({
                                       </p>
                                       <p className="text-xs text-gray-500 truncate">
                                         {attachment.filename}
-                                      </p>
-                                    </div>
+                          </p>
+                        </div>
                                     <EyeIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                                  </button>
+                            </button>
                                 ))}
-                              </div>
-                            </div>
-                          )}
+                          </div>
+                        </div>
+                      )}
                           {/* 组件智能选型的可交互选项 */}
                           {selectedAgent === "component-selection" && m.componentOptions && m.componentOptions.options && (
                             <div className="mt-4 space-y-3">
                               <div className="flex items-center gap-2 mb-3">
                                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                                   <span className="text-sm">🤖</span>
-                                </div>
+                            </div>
                                 <span className="text-sm font-medium text-gray-700">
                                   {m.componentOptions.message || "已为您找到匹配的方案。需要为您展示详情吗？"}
                                 </span>
-                              </div>
+                          </div>
                               <div className="flex flex-col gap-2">
                                 {m.componentOptions.options.map((option) => {
                                   // 动态获取图标组件
@@ -872,7 +900,7 @@ export function ChatArea({
                                     </Button>
                                   );
                                 })}
-                              </div>
+                          </div>
                             </div>
                           )}
                         </div>
@@ -902,12 +930,12 @@ export function ChatArea({
                                         <p className="text-xs text-gray-500">
                                           {fileSizeText}
                                         </p>
-                                      </div>
-                                    </div>
+                                  </div>
+                                </div>
                                   );
                                 })}
                               </div>
-                            </div>
+                          </div>
                           )}
                         </div>
                       )}
@@ -940,7 +968,7 @@ export function ChatArea({
                         <PromptInputActionAddAttachments label="添加文件" />
                       </PromptInputActionMenuContent>
                     </PromptInputActionMenu>
-                  </div>
+              </div>
                   <PromptInputSubmit
                     status={
                       status === "submitted"
@@ -956,9 +984,9 @@ export function ChatArea({
                     {<SendIcon className="size-4" />}
                     运行
                   </PromptInputSubmit>
-                </div>
+            </div>
               </PromptInputBody>
-            </PromptInput>
+          </PromptInput>
           </div>
         </div>
       )}
