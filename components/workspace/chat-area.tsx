@@ -34,6 +34,7 @@ import {
   usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
+import { Loader } from "@/components/ai-elements/loader";
 import {
   Sources,
   SourcesContent,
@@ -810,7 +811,7 @@ export function ChatArea({
               Empty
             ) : (
               <ConversationContent>
-                {messages.map((m) => (
+                {messages.map((m, i) => (
                   <AIMessage key={m.id} from={m.role}>
                     <MessageContent>
                       {m.role === "assistant" ? (
@@ -848,7 +849,13 @@ export function ChatArea({
                               </ChainOfThoughtContent>
                             </ChainOfThought>
                           )}
-                          <Response>{m.content}</Response>
+                          {(!m.content && status === "submitted" && i === messages.length - 1) ? (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Loader size={16} />
+                            </div>
+                          ) : (
+                            <Response>{m.content}</Response>
+                          )}
                           {m.attachments && m.attachments.length > 0 && (
                             <div className="mt-4 space-y-2">
                               <h4 className="text-sm font-medium text-gray-700">附件 ({m.attachments.length})</h4>
@@ -976,7 +983,7 @@ export function ChatArea({
                   <div className="flex items-center gap-1">
                     <DirectUploadButton />
                     <PromptInputActionMenu>
-                      <PromptInputActionMenuTrigger aria-label="更多操作" />
+                      {/* <PromptInputActionMenuTrigger aria-label="更多操作" /> */}
                       <PromptInputActionMenuContent>
                         <PromptInputActionAddAttachments label="添加文件" />
                       </PromptInputActionMenuContent>

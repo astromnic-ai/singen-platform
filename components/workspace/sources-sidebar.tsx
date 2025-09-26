@@ -135,7 +135,7 @@ export function SourcesSidebar({
                     {getFileIcon(source.fileType)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+                    <h4 className="text-sm font-medium text-gray-900 overflow-hidden [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical]">
                       {source.title}
                     </h4>
                   </div>
@@ -144,7 +144,7 @@ export function SourcesSidebar({
                 {/* 内容预览 */}
                 {source.preview && (
                   <div className="mb-3">
-                    <p className="text-xs text-gray-600 line-clamp-3 bg-gray-50 p-2 rounded">
+                    <p className="text-xs text-gray-600 bg-gray-50 p-2 rounded overflow-hidden [display:-webkit-box] [-webkit-line-clamp:3] [-webkit-box-orient:vertical]">
                       {source.preview}
                     </p>
                   </div>
