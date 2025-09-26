@@ -5,7 +5,7 @@ import { Move3D } from "lucide-react"
 import GlbViewer from "./glb-viewer"
 
 export function ThreeDCanvas() {
-  const [glbUrl, setGlbUrl] = useState("https://singen-1330656709.cos.ap-beijing.myqcloud.com/CCFB25008-01-02-007.glb")
+  const [glbUrl, setGlbUrl] = useState("https://singen-1330656709.cos.ap-beijing.myqcloud.com/production-line.glb")
 
   return (
     <div className="relative w-full h-full">
