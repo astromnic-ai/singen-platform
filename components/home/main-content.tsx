@@ -88,7 +88,7 @@ export function MainContent() {
                   上传文档
                 </Button>
               </div>
-              <Link href={`/workspace?agent=${selectedAgent}`}>
+              <Link href={`/workspace?agent=${selectedAgent}&message=${encodeURIComponent(message || "")}`}>
                 <Button className="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 shadow-sm">
                   开始对话
                   <ArrowRight className="w-4 h-4 ml-2" />

@@ -33,6 +33,9 @@ const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) =>
   const animationFrameRef = useRef<number | null>(null)
   const gridHelperRef = useRef<THREE.GridHelper | null>(null)
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null)
+  const isSpacePressedRef = useRef(false)
+  const originalMouseButtonsRef = useRef<{ LEFT: THREE.MOUSE; MIDDLE: THREE.MOUSE; RIGHT: THREE.MOUSE } | null>(null)
+  const originalAutoRotateRef = useRef<boolean | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -94,6 +97,18 @@ const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) =>
     controls.autoRotateSpeed = 1.0
     controls.minDistance = 0.01
     controls.maxDistance = 100
+    // 明确默认鼠标按钮映射
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN,
+    }
+    originalMouseButtonsRef.current = {
+      LEFT: (controls.mouseButtons as any).LEFT ?? THREE.MOUSE.ROTATE,
+      MIDDLE: (controls.mouseButtons as any).MIDDLE ?? THREE.MOUSE.DOLLY,
+      RIGHT: (controls.mouseButtons as any).RIGHT ?? THREE.MOUSE.PAN,
+    }
+    originalAutoRotateRef.current = controls.autoRotate
     controlsRef.current = controls
 
     const animate = () => {
@@ -118,6 +133,38 @@ const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) =>
       renderer.render(scene, camera)
     }
     animate()
+
+    // 按下空格时将左键拖拽改为平移；松开恢复旋转
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      // 避免输入框内触发
+      const target = e.target as HTMLElement | null
+      if (target && (/^(input|textarea|select)$/i).test(target.tagName)) return
+      e.preventDefault()
+      if (!controlsRef.current || isSpacePressedRef.current) return
+      isSpacePressedRef.current = true
+      // 暂停自动旋转，切换左键为平移
+      controlsRef.current.autoRotate = false
+      controlsRef.current.mouseButtons.LEFT = THREE.MOUSE.PAN
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      if (!controlsRef.current || !isSpacePressedRef.current) return
+      isSpacePressedRef.current = false
+      // 恢复左键为旋转及自动旋转状态
+      if (originalMouseButtonsRef.current) {
+        controlsRef.current.mouseButtons.LEFT = originalMouseButtonsRef.current.LEFT
+      } else {
+        controlsRef.current.mouseButtons.LEFT = THREE.MOUSE.ROTATE
+      }
+      if (originalAutoRotateRef.current !== null) {
+        controlsRef.current.autoRotate = originalAutoRotateRef.current
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
 
     const handleResize = () => {
       if (!containerRef.current || !cameraRef.current || !rendererRef.current) return
@@ -161,6 +208,8 @@ const GlbViewer: React.FC<GlbViewerProps> = ({ glbUrl, title, height = 500 }) =>
           // 忽略移除错误
         }
       }
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
       rendererRef.current?.dispose()
       controlsRef.current?.dispose()
     }

@@ -9,6 +9,7 @@ import { useSearchParams } from "next/navigation"
 export default function WorkspacePage() {
   const searchParams = useSearchParams()
   const agentParam = searchParams.get('agent')
+  const messageParam = searchParams.get('message')
   
   const [selectedAgent, setSelectedAgent] = useState("process-analysis")
   const [projectName, setProjectName] = useState("未命名文件")
@@ -58,6 +59,7 @@ export default function WorkspacePage() {
           onConversationHistoryChange={setConversationHistory}
           selectedConversation={selectedConversation}
           onConversationChange={setSelectedConversation}
+          initialMessage={messageParam || undefined}
         />
       </div>
     </div>
