@@ -697,15 +697,124 @@ J --> L["机械手抓取托盘码放至NG料车（托盘排废）"]
         assistantMessage.sources = sources;
       }
 
-      // 发送markdown附件（组件智能选型、部件成本核算不需要附件）
+      // 发送markdown附件（部件成本核算不需要附件）
       let attachments: Array<{ id: string; title: string; filename: string; content: string }> | undefined;
-      if (selectedAgent !== "component-selection" && selectedAgent !== "cost-calculation") {
-        attachments = [
-          {
-            id: "attachment-1",
-            title: "详细技术要求分析",
-            filename: "detailed_technical_requirements_analysis.md",
-            content: `# 详细技术要求分析
+      if (selectedAgent !== "cost-calculation") {
+        // 为组件智能选型提供专门的附件
+        if (selectedAgent === "component-selection") {
+          attachments = [
+            {
+              id: "attachment-1",
+              title: "推荐组件技术规格书",
+              filename: "recommended_component_specifications.md",
+              content: `# 推荐组件技术规格书
+
+## 行星轮移动分料工位夹爪系统
+
+### 基本参数
+- **型号**: PG-4000-GRIPPER
+- **夹持力**: 50-200N (可调)
+- **夹持范围**: 10-80mm
+- **重复定位精度**: ±0.05mm
+- **最大负载**: 3kg
+
+### 技术特点
+1. **高精度定位**: 采用伺服电机驱动，确保精确定位
+2. **多点夹持**: 四指独立控制，适应不同形状工件
+3. **智能检测**: 内置压力传感器，自动调节夹持力
+4. **快速响应**: 夹取/释放时间 < 0.5秒
+
+### 应用场景
+- 样品旋转移栽作业
+- 多工位自动化生产线
+- 精密装配工艺
+
+### 环境要求
+- **工作温度**: -10°C ~ +60°C
+- **湿度**: ≤85% RH
+- **防护等级**: IP65
+- **气源压力**: 0.4-0.8 MPa
+
+### 安装接口
+- **法兰尺寸**: ISO 9409-1-50-4-M6
+- **电气接口**: M12圆形连接器
+- **气路接口**: G1/4内螺纹
+
+## 配套设备推荐
+- 伺服驱动器: SERVO-2000
+- 控制器: PLC-CTRL-500
+- 传感器套件: SENSOR-KIT-A`,
+            },
+            {
+              id: "attachment-2",
+              title: "选型对比分析",
+              filename: "component_selection_analysis.md",
+              content: `# 选型对比分析
+
+## 方案比较
+
+### 方案A：行星轮夹爪系统 (推荐)
+**优势:**
+- 精度高 (±0.05mm)
+- 适应性强，支持多种工件形状
+- 维护成本低
+- 可靠性高
+
+**劣势:**
+- 初期投资相对较高
+- 需要专业调试
+
+**适用场景:** 精密装配、多品种生产
+
+### 方案B：气动夹爪
+**优势:**
+- 成本低
+- 结构简单
+- 响应快
+
+**劣势:**
+- 精度一般 (±0.2mm)
+- 夹持力控制精度低
+- 适应性有限
+
+**适用场景:** 标准化产品、大批量生产
+
+### 方案C：电动夹爪
+**优势:**
+- 控制精确
+- 节能环保
+- 噪音低
+
+**劣势:**
+- 响应速度慢
+- 维护复杂
+- 成本中等
+
+**适用场景:** 对环境要求高的场合
+
+## 推荐理由
+基于您的应用需求（旋转移栽、保持角度不变），推荐**方案A：行星轮夹爪系统**，原因如下：
+
+1. **精度匹配**: ±0.05mm精度完全满足精密移栽要求
+2. **功能完备**: 四指独立控制，适应复杂工件形状
+3. **可靠性高**: 工业级设计，适合连续作业
+4. **扩展性好**: 支持多种控制接口，便于系统集成
+
+## 投资回报分析
+- **设备投资**: 约8.5万元
+- **预计年节约人工成本**: 12万元
+- **投资回收期**: 8.5个月
+- **5年总收益**: 约51.5万元`,
+            },
+          ];
+        } else {
+          // 其他智能体的通用附件
+          attachments = [
+            {
+              id: "attachment-1",
+              title: "详细技术要求分析",
+              filename: "detailed_technical_requirements_analysis.md",
+              content: `# 详细技术要求分析
 
 ## 项目概述
 本报告基于您提供的需求，对工艺流程进行了详细分析。
@@ -722,12 +831,12 @@ J --> L["机械手抓取托盘码放至NG料车（托盘排废）"]
 
 ## 建议方案
 基于以上分析，建议采用以下技术方案...`,
-          },
-          {
-            id: "attachment-2",
-            title: "待确认问题清单",
-            filename: "unverified_questions_list.md",
-            content: `# 待确认问题清单
+            },
+            {
+              id: "attachment-2",
+              title: "待确认问题清单",
+              filename: "unverified_questions_list.md",
+              content: `# 待确认问题清单
 
 ## 主要设备
 | 设备名称 | 型号 | 数量 | 单价(万元) |
@@ -743,16 +852,13 @@ J --> L["机械手抓取托盘码放至NG料车（托盘排废）"]
 
 ## 总投资估算
 设备总价：约126万元`,
-          },
-        ];
+            },
+          ];
+        }
 
         await send({
           type: "attachments",
-          attachments: attachments.map((att) => ({
-            id: att.id,
-            title: att.title,
-            filename: att.filename,
-          })),
+          attachments: attachments,
         });
         // 保存完整的attachments到assistantMessage
         assistantMessage.attachments = attachments;
@@ -902,7 +1008,7 @@ J --> L["机械手抓取托盘码放至NG料车（托盘排废）"]
         componentOptions: assistantMessage.componentOptions,
         cotText: assistantMessage.cotText,
       };
-      if (selectedAgent !== "component-selection" && selectedAgent !== "cost-calculation" && attachments) {
+      if (selectedAgent !== "cost-calculation" && attachments) {
         donePayload.attachments = attachments;
       }
       await send(donePayload);

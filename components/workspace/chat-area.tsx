@@ -71,6 +71,7 @@ import { Button } from "../ui/button";
 import { MarkdownPreviewSidebar } from "./markdown-preview-sidebar";
 import { SourcesSidebar } from "./sources-sidebar";
 import { ThreeDDesignArea } from "./three-d-design-area";
+import GlbViewer from "./glb-viewer";
 
 // Keep props compatible
 interface ChatAreaProps {
@@ -953,7 +954,32 @@ export function ChatArea({
                               <Loader size={16} />
                             </div>
                           ) : (
-                            <Response>{m.content}</Response>
+                            (() => {
+                              const MODEL_FLAG = "【展示3D模型】";
+                              const shouldShowModel =
+                                selectedAgent === "cost-calculation" &&
+                                typeof m.content === "string" &&
+                                m.content.includes(MODEL_FLAG);
+                              const displayText = shouldShowModel
+                                ? m.content.replace(MODEL_FLAG, "").trim()
+                                : m.content;
+
+                              return (
+                                <>
+                                  {shouldShowModel && (
+                                    <div className="mb-4 w-full overflow-hidden rounded-lg border bg-white">
+                                      <div style={{ height: 500 }}>
+                                        <GlbViewer
+                                          glbUrl="https://singen-1330656709.cos.ap-beijing.myqcloud.com/G48-3B31C59-201-002.glb"
+                                          title="零件3D模型"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                  <Response>{displayText}</Response>
+                                </>
+                              );
+                            })()
                           )}
                           {m.attachments && m.attachments.length > 0 && (
                             <div className="mt-4 space-y-2">
