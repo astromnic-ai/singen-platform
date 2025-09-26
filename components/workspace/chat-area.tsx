@@ -202,6 +202,8 @@ interface UIMessageItem {
   };
   // 新增：后端流式思考文本
   cotText?: string;
+  // 新增：深度思考是否完成
+  cotCompleted?: boolean;
   // 组件智能选型的可交互选项
   componentOptions?: {
     message?: string; // 提示文本
@@ -574,7 +576,18 @@ export function ChatArea({
                   )
                 }));
               } else if (evt.type === "cot_text_done") {
-                // 结束事件，无额外操作
+                // 标记深度思考完成
+                setConversationHistory((prev) => ({
+                  ...prev,
+                  [conversationKey]: (prev[conversationKey] || []).map((m) =>
+                    m.id === assistantId
+                      ? {
+                        ...m,
+                        cotCompleted: true,
+                      }
+                      : m
+                  )
+                }));
               } else if (evt.type === "attachments" && Array.isArray(evt.attachments)) {
                 commit({ attachments: evt.attachments });
               } else if (evt.type === "componentOptions" && evt.options) {
@@ -814,7 +827,7 @@ export function ChatArea({
                             </Sources>
                           )}
                           {(m.cotText || m.cot) && (
-                            <ChainOfThought defaultOpen={true}>
+                            <ChainOfThought defaultOpen={true} isCompleted={m.cotCompleted}>
                               <ChainOfThoughtHeader>
                                 深度思考
                               </ChainOfThoughtHeader>

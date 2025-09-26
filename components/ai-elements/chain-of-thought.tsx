@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { ComponentProps } from "react";
-import { createContext, memo, useContext } from "react";
+import { createContext, memo, useContext, useEffect, useState } from "react";
 
 type ChainOfThoughtContextValue = {
   isOpen: boolean;
@@ -40,6 +40,7 @@ export type ChainOfThoughtProps = ComponentProps<"div"> & {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  isCompleted?: boolean; // 新增：是否完成输出
 };
 
 export const ChainOfThought = memo(
@@ -48,6 +49,7 @@ export const ChainOfThought = memo(
     open,
     defaultOpen = false,
     onOpenChange,
+    isCompleted = false,
     children,
     ...props
   }: ChainOfThoughtProps) => {
@@ -56,11 +58,25 @@ export const ChainOfThought = memo(
       defaultProp: defaultOpen,
       onChange: onOpenChange,
     });
+    
+    const [hasAutoClosed, setHasAutoClosed] = useState(false);
+
+    // 自动折叠逻辑：当内容输出完成且当前是打开状态时，延迟1秒后自动折叠
+    useEffect(() => {
+      if (isCompleted && isOpen && !hasAutoClosed) {
+        const timer = setTimeout(() => {
+          setIsOpen(false);
+          setHasAutoClosed(true);
+        }, 1000); // 1秒延迟
+
+        return () => clearTimeout(timer);
+      }
+    }, [isCompleted, isOpen, hasAutoClosed, setIsOpen]);
 
     return (
       <ChainOfThoughtContext.Provider value={{ isOpen, setIsOpen }}>
         <div
-          className={cn("not-prose max-w-prose space-y-4", className)}
+          className={cn("not-prose w-full space-y-4", className)}
           {...props}
         >
           {children}
